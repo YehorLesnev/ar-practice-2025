@@ -12,19 +12,23 @@ async function activateXR(): Promise<void> {
     // FIX THIS:
     const scene = new THREE.Scene();
 
+    const redMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 }); // red for bottom face
+    const greenMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 }); // green for top face
+    const blueMaterial = new THREE.MeshBasicMaterial({ color: 0x0000ff }); // blue for other faces
+
     // initialize materials
     const materials = [
-        new THREE.MeshBasicMaterial({color: 0xff0000}),
-        new THREE.MeshBasicMaterial({color: 0x0000ff}),
-        new THREE.MeshBasicMaterial({color: 0x00ff00}),
-        new THREE.MeshBasicMaterial({color: 0xff00ff}),
-        new THREE.MeshBasicMaterial({color: 0x00ffff}),
-        new THREE.MeshBasicMaterial({color: 0xffff00})
+        blueMaterial, // front face
+        blueMaterial, // back face
+        greenMaterial, // top face
+        redMaterial,   // bottom face
+        blueMaterial, // left face
+        blueMaterial  // right face
     ];
 
-    const cube = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.2, 0.2), materials);
+    const cube = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 0.5), materials);
     // set cube position
-    cube.position.set(1, 1, 1);
+    cube.position.set(1, 0, 1);
     // add cube to scene
     scene.add(cube);
 
