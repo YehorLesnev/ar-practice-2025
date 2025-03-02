@@ -10,7 +10,7 @@ async function activateXR(): Promise<void> {
     if (!gl) throw new Error("WebGL not supported");
 
     // FIX THIS:
-    const scene = null;
+    const scene = new THREE.Scene();
 
     // initialize materials
     const materials = [
@@ -41,7 +41,7 @@ async function activateXR(): Promise<void> {
     renderer.autoClear = false;
 
     // FIX THIS:
-    const camera = null;
+    const camera = new THREE.PerspectiveCamera();;
     camera.matrixAutoUpdate = false;
 
     if (!navigator.xr) {
@@ -65,7 +65,7 @@ async function activateXR(): Promise<void> {
     );
 
     // FIX THIS:
-    const baseLayer = null;
+    const baseLayer = new XRWebGLLayer(session, gl);
     session.updateRenderState({
         baseLayer
     });
@@ -87,7 +87,7 @@ async function activateXR(): Promise<void> {
         try {
             // request reference space
             // FIX THIS:
-            referenceSpace = null;
+            referenceSpace = await session.requestReferenceSpace(spaceType);
             console.log('Reference space established:', spaceType);
             break;
         } catch(e) {
@@ -109,28 +109,30 @@ async function activateXR(): Promise<void> {
         const baseLayer = session.renderState.baseLayer;
         if (!baseLayer) return;
     
-        gl.bindFramebuffer(gl.FRAMEBUFFER, baseLayer.framebuffer)
+        // Bind the framebuffer and clear it
+        gl.bindFramebuffer(gl.FRAMEBUFFER, baseLayer.framebuffer);
+        gl.clearColor(0, 0, 0, 0);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     
         const pose = frame.getViewerPose(referenceSpace);
         if (pose) {
             const view = pose.views[0];
-    
             const viewport = baseLayer.getViewport(view);
             if (!viewport) return;
-            renderer.setSize(viewport.width, viewport.height)
+            renderer.setSize(viewport.width, viewport.height);
     
-            // Use the view's transform matrix and projection matrix to configure the THREE.camera.
-            camera.matrix.fromArray(view.transform.matrix)
+            // Update the camera with the XR view's transform and projection
+            camera.matrix.fromArray(view.transform.matrix);
             camera.projectionMatrix.fromArray(view.projectionMatrix);
             camera.updateMatrixWorld(true);
     
-            // Render the scene with THREE.WebGLRenderer.
-            renderer.render(scene, camera)
+            // Render the scene into the cleared framebuffer
+            renderer.render(scene, camera);
         }
-    }
+    };
 
     session.requestAnimationFrame(onXRFrame);
 }
 
 // Make the function available globally
-(window as any).activateXR = activateXR; 
+(window as any).activateXR = activateXR;
