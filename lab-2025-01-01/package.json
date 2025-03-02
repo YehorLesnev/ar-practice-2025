@@ -3,8 +3,8 @@
 	"version": "1.0.0",
 	"description": "WebXR demo project",
 	"scripts": {
-		"start": "concurrently \"pnpm build --watch=forever\" \"pnpm serve .\"",
-		"build": "esbuild main.ts --bundle --outfile=dist/main.js --format=esm"
+		"start": "concurrently \"pnpm build --watch=forever\" \"pnpm exec serve .\"",
+		"build": "esbuild main.ts --bundle --outfile=dist/main.js --format=esm --platform=browser --external:three/examples/jsm/loaders/GLTFLoader.js"
 	},
 	"devDependencies": {
 		"@types/three": "^0.172.0",

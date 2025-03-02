@@ -1,4 +1,6 @@
 import * as THREE from 'three';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import type { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
 const MODE = 'immersive-ar';
 
@@ -32,9 +34,12 @@ async function activateXR(): Promise<void> {
     // add cube to scene
     scene.add(cube);
 
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.3);
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    scene.add(ambientLight);
+
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
     directionalLight.position.set(10, 15, 10);
-    scene.add(directionalLight);
+    scene.add(directionalLight);    
     
     const renderer = new THREE.WebGLRenderer({
         alpha: true,
@@ -64,7 +69,8 @@ async function activateXR(): Promise<void> {
     const session = await navigator.xr.requestSession(
         MODE,
         {
-            requiredFeatures: ['local']
+            requiredFeatures: ['local'],
+            optionalFeatures: ['hit-test']
         }
     );
 
@@ -74,24 +80,22 @@ async function activateXR(): Promise<void> {
         baseLayer
     });
 
-
     const referenceSpaceTypes: XRReferenceSpaceType[] = [
-        'local',
-        'local-floor',
-        'bounded-floor',
-        'unbounded',
-        'viewer'
+        'local'
     ];
 
     let referenceSpace: XRReferenceSpace | null = null;
+    let hitTestSource: XRHitTestSource | undefined = undefined;
 
     // observe how reference space types and request reference space
     // are applied to the scene
     for (const spaceType of referenceSpaceTypes) {
         try {
-            // request reference space
-            // FIX THIS:
             referenceSpace = await session.requestReferenceSpace(spaceType);
+            const viewerSpace = await session.requestReferenceSpace('viewer');
+            if (session.requestHitTestSource) {
+                hitTestSource = await session.requestHitTestSource({ space: viewerSpace });
+            }
             console.log('Reference space established:', spaceType);
             break;
         } catch(e) {
@@ -104,6 +108,33 @@ async function activateXR(): Promise<void> {
     if (!referenceSpace) {
         throw new Error('No reference space could be established');
     }
+
+    const loader = new GLTFLoader();
+    let reticle: THREE.Group;
+    loader.load(
+        "https://immersive-web.github.io/webxr-samples/media/gltf/reticle/reticle.gltf",
+        (gltf: GLTF) => {
+            reticle = gltf.scene;
+            reticle.visible = false;
+            scene.add(reticle);
+        }
+    );
+
+    session.addEventListener("select", (event) => {
+        if (flower) {
+        const clone = flower.clone();
+        clone.position.copy(reticle.position);
+        scene.add(clone);
+        }
+        });
+
+    let flower: any;
+    loader.load(
+        "https://immersive-web.github.io/webxr-samples/media/gltf/sunflower/sunflower.gltf",
+        (gltf) => {
+            flower = gltf.scene;
+        }
+    );
 
     // Create a render loop that allows us to draw on the AR view.
     const onXRFrame = (time: number, frame: XRFrame) => {
@@ -125,6 +156,16 @@ async function activateXR(): Promise<void> {
             if (!viewport) return;
             renderer.setSize(viewport.width, viewport.height);
     
+            if (!hitTestSource) return;
+            const hitTestResults = frame.getHitTestResults(hitTestSource);
+            if (hitTestResults.length > 0 && reticle) {
+                const hitPose = hitTestResults[0].getPose(referenceSpace);
+                if (!hitPose) return;
+                reticle.visible = true;
+                reticle.position.set(hitPose.transform.position.x, hitPose.transform.position.y, hitPose.transform.position.z);
+                reticle.updateMatrixWorld(true);
+            }
+
             // Update the camera with the XR view's transform and projection
             camera.matrix.fromArray(view.transform.matrix);
             camera.projectionMatrix.fromArray(view.projectionMatrix);
