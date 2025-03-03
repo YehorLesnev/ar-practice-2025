@@ -1,6 +1,6 @@
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import type { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { GLTFLoader } from './node_modules/three/examples/jsm/loaders/GLTFLoader.js';
+import type { GLTF } from './node_modules/three/examples/jsm/loaders/GLTFLoader.js';
 
 const MODE = 'immersive-ar';
 
@@ -121,18 +121,30 @@ async function activateXR(): Promise<void> {
     );
 
     session.addEventListener("select", (event) => {
-        if (flower) {
-        const clone = flower.clone();
-        clone.position.copy(reticle.position);
-        scene.add(clone);
+        if (customModel) {
+            const clone = customModel.clone();
+            clone.position.copy(reticle.position);
+            scene.add(clone);
         }
-        });
+    });
 
-    let flower: any;
+    let customModel: THREE.Group;
     loader.load(
-        "https://immersive-web.github.io/webxr-samples/media/gltf/sunflower/sunflower.gltf",
+        "./models/chair.glb", // Replace with your model path
         (gltf) => {
-            flower = gltf.scene;
+            customModel = gltf.scene;
+            // Optionally adjust scale if needed
+            customModel.scale.set(1.0, 1.0, 1.0);
+            // Optionally adjust initial rotation if needed
+            // customModel.rotation.set(0, 0, 0);
+        },
+        // Handle loading progress
+        (progress) => {
+            console.log('Loading model...', (progress.loaded / progress.total * 100) + '%');
+        },
+        // Handle errors
+        (error) => {
+            console.error('Error loading model:', error);
         }
     );
 
