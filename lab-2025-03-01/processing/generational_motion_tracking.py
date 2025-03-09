@@ -15,23 +15,30 @@ class GenerationalVectorInference(BaseInference):
         self.initial_motion_vector = np.array([0.0, 0.0])
 
     def _synchronize_trackers_with_results(self, results: List[SparseResult | None]):
+        # Extend trackers list if needed
+        while len(self.trackers) < len(results):
+            self.trackers.append(None)
+            
         for i, result in enumerate(results):
-            # No result means process is not active anymore and its tracker should be removed
             if result is None:
-                tracker_to_remove = self.trackers[i]
-                if tracker_to_remove is not None:
+                # Remove inactive tracker
+                if i < len(self.trackers) and self.trackers[i] is not None:
                     self.trackers[i] = None
-                    del tracker_to_remove
                     self.active_trackers -= 1
                     self.fizzled_trackers += 1
-                continue
-            # Instantiate new tracker for new results
-            if len(self.trackers) <= i:
-                new_tracker = self.TrackerInstantiator(self.average_motion_vector)
-                self.trackers.append(new_tracker)
-                self.active_trackers += 1
+            else:
+                # Create new tracker if needed
+                if i < len(self.trackers) and self.trackers[i] is None:
+                    self.trackers[i] = self.TrackerInstantiator(self.average_motion_vector)
+                    self.active_trackers += 1
 
     def infer(self, results: List[SparseResult | None]):
+        if not results:  # Handle empty results
+            return {
+                'average_motion_vector': self.average_motion_vector,
+                'subvector_results': []
+            }
+            
         self._synchronize_trackers_with_results(results)
         
         subvector_results = []
@@ -46,6 +53,13 @@ class GenerationalVectorInference(BaseInference):
             subvector_results.append(result_vectors)
             compound_motion_vector = result_vectors[0] + result_vectors[1]
             compound_motion_vector_results.append(compound_motion_vector)
+
+        # Handle case when no valid vectors were found
+        if not compound_motion_vector_results:
+            return {
+                'average_motion_vector': np.array([0.0, 0.0]),
+                'subvector_results': subvector_results
+            }
 
         average_motion_vector = np.mean(np.array(compound_motion_vector_results), axis=0)
         self.average_motion_vector = average_motion_vector

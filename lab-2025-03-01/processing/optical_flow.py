@@ -113,6 +113,11 @@ class LucasKanadeOpticalFlow(IOpticalFlow):
     def apply(self, frame):
         if self.p0 is None:
             self.set1stFrame(frame)
+            return frame, None
+
+        if len(self.p0) == 0:  # No features to track
+            self.set1stFrame(frame)
+            return frame, None
 
         frame_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
@@ -120,9 +125,17 @@ class LucasKanadeOpticalFlow(IOpticalFlow):
         p1, st, err = cv2.calcOpticalFlowPyrLK(self.old_gray, frame_gray,
                                                self.p0, None, **self.lk_params)
 
+        if p1 is None:  # Tracking failed
+            self.set1stFrame(frame)
+            return frame, None
+
         # Select good points
         good_new = p1[st==1]
         good_old = self.p0[st==1]
+
+        if len(good_new) == 0 or len(good_old) == 0:  # No good points found
+            self.set1stFrame(frame)
+            return frame, None
 
         centerpoint = np.array([frame_gray.shape[1] // 2, frame_gray.shape[0] // 2])
         old_points = good_old - centerpoint
@@ -141,7 +154,6 @@ class LucasKanadeOpticalFlow(IOpticalFlow):
             new_points = new_points,
             original_points = self.p0,
             valid_positions = st,
-
         )
         return frame, sparse_result
 

@@ -71,10 +71,13 @@ class RecordedVideoInput(BaseVideoInput):
 class DefaultCameraVideoInput(BaseVideoInput):
     def __init__(self) -> None:
         super().__init__()
-        camera = cv2.VideoCapture(0)
-        if not camera.isOpened():
-            raise Exception('Camera could not initialize')
-        self.camera = camera
+        # Try different camera indices
+        for index in range(10):  # Try indices 0-9
+            camera = cv2.VideoCapture(index)
+            if camera.isOpened():
+                self.camera = camera
+                return
+        raise Exception('No working camera found. Please connect a camera or provide a video file.')
     
     def capture(self):
         rval, frame = self.camera.read()
@@ -82,14 +85,11 @@ class DefaultCameraVideoInput(BaseVideoInput):
 
 
 def get_video_input(source_path=None, crop=None, maxwidth=None) -> BaseVideoInput:
-    try:
-        return PiCameraLiveInput()
-    except Exception:
-        if source_path:
-            # Decide if provided path is folder or video file
-            if os.path.isfile(source_path):
-                return RecordedVideoInput(source_path, crop_factor=crop, resize_maxwidth=maxwidth)
-            else:
-                return SavedImageSeriesInput(source_path, crop_factor=crop, resize_maxwidth=maxwidth)
+    if source_path:
+        # Decide if provided path is folder or video file
+        if os.path.isfile(source_path):
+            return RecordedVideoInput(source_path, crop_factor=crop, resize_maxwidth=maxwidth)
         else:
-            return DefaultCameraVideoInput()
+            return SavedImageSeriesInput(source_path, crop_factor=crop, resize_maxwidth=maxwidth)
+    else:
+        return DefaultCameraVideoInput()

@@ -69,6 +69,10 @@ class ImageHUD:
         return self.frame
 
     def draw_central_vector(self, vector: tuple, position: int):
+        # Handle scalar or NaN cases
+        if not isinstance(vector, np.ndarray) or vector.size != 2 or np.any(np.isnan(vector)):
+            return self.frame
+
         vis_vector = vector.astype(int)
         if not np.any(vis_vector):
             return self.frame

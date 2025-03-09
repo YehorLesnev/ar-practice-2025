@@ -21,14 +21,21 @@ def infer_dense_rotation_translation(optical_flow_motion_field: np.ndarray, perc
     return theta, translation_vector
 
 
-def estimate_sparse_principals_affine2D(from_field: np.ndarray, to_field: np.ndarray):
-    if len(from_field.shape) > len(to_field.shape):
-        from_field = from_field.reshape(-1, 2)
+def estimate_sparse_principals_affine2D(from_points_cartesian, to_points_cartesian):
+    """
+    Estimates rotation angle and translation vector from two sets of corresponding points.
+    """
+    if len(from_points_cartesian) < 3 or len(to_points_cartesian) < 3:
+        return 0.0, np.array([0.0, 0.0])  # Return default values if not enough points
 
-    affine_transformation_matrix, inliers = cv2.estimateAffinePartial2D(
-        from_field,
-        to_field
-    )
+    affine_transformation_matrix = cv2.estimateAffine2D(
+        from_points_cartesian,
+        to_points_cartesian,
+        method=cv2.RANSAC
+    )[0]
+
+    if affine_transformation_matrix is None:
+        return 0.0, np.array([0.0, 0.0])  # Return default values if transformation failed
 
     theta, translation_vector = get_principals_from_transformation_matrix(affine_transformation_matrix)
     return theta, translation_vector

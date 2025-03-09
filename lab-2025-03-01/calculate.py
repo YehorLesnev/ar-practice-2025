@@ -55,9 +55,28 @@ def main(image_path: Optional[str], crop: Optional[float], maxwidth: Optional[in
     
     # Current visualization mode (default: Lucas-Kanade method)
     current_mode = 3
-
+    A = 8+16
     # FIX THIS
-    create_default_lk_flow = None
+    create_default_lk_flow = lambda: optical_flow.LucasKanadeOpticalFlow(
+        feature_params=dict(
+            maxCorners=A * 2,
+            qualityLevel=A / 100,
+            minDistance=A * 5,
+            blockSize=A * 2,
+            useHarrisDetector=False
+        ),
+        lk_params=dict(
+            winSize=(15, 15),
+            maxLevel=2,
+            criteria=(
+                cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT,
+                10,
+                0.03
+            )
+        )
+    )
+
+    
 
     CompoundTrackerInstantiator = lambda x: CompoundVectorInferenceSparse(
         initial_motion_vector=x,
